@@ -43,7 +43,6 @@
 #include "butil/strings/stringprintf.h"
 #include "butil/strings/sys_string_conversions.h"
 #include "butil/strings/utf_string_conversions.h"
-#include "butil/sys_info.h"
 #include "butil/threading/thread_restrictions.h"
 #include "butil/time/time.h"
 
@@ -699,7 +698,7 @@ int ReadFile(const FilePath& filename, char* data, int max_size) {
 
 int WriteFile(const FilePath& filename, const char* data, int size) {
   ThreadRestrictions::AssertIOAllowed();
-  int fd = HANDLE_EINTR(creat(filename.value().c_str(), 0640));
+  int fd = HANDLE_EINTR(creat(filename.value().c_str(), 0644));
   if (fd < 0)
     return -1;
 

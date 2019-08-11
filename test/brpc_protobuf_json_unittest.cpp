@@ -1,23 +1,38 @@
-// Copyright (c) 2014 Baidu, Inc.
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
 
 #include <sys/time.h>
 #include <gtest/gtest.h>
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <gperftools/profiler.h>
-#include <json2pb/pb_to_json.h>
-#include <json2pb/json_to_pb.h>
-#include <butil/iobuf.h>
 #include <google/protobuf/text_format.h>
-#include <butil/third_party/rapidjson/rapidjson.h>
+#include "butil/iobuf.h"
+#include "butil/third_party/rapidjson/rapidjson.h"
 #include "butil/time.h"
+#include "butil/gperftools_profiler.h"
+#include "json2pb/pb_to_json.h"
+#include "json2pb/json_to_pb.h"
+#include "json2pb/encode_decode.h"
 #include "message.pb.h"
 #include "addressbook1.pb.h"
 #include "addressbook.pb.h"
 #include "addressbook_encode_decode.pb.h"
 #include "addressbook_map.pb.h"
-#include <json2pb/encode_decode.h>
 
 namespace {  // just for coding-style check
 

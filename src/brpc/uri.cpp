@@ -1,16 +1,19 @@
-// Copyright (c) 2014 Baidu, Inc.
-// 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-// 
-//     http://www.apache.org/licenses/LICENSE-2.0
-// 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
 
 // Authors: Zhangyi Chen (chenzhangyi01@baidu.com)
 //          Ge,Jun (gejun@baidu.com)
@@ -224,8 +227,8 @@ int URI::SetHttpURL(const char* url) {
     return 0;
 }
 
-int ParseHostAndPortFromURL(const char* url, std::string* host_out,
-                             int* port_out) {
+int ParseURL(const char* url,
+             std::string* schema_out, std::string* host_out, int* port_out) {
     const char* p = url;
     // skip heading blanks
     if (*p == ' ') {
@@ -235,7 +238,6 @@ int ParseHostAndPortFromURL(const char* url, std::string* host_out,
     // Find end of host, locate schema and user_info during the searching
     bool need_schema = true;
     bool need_user_info = true;
-    butil::StringPiece schema;
     for (; true; ++p) {
         const char action = g_url_parsing_fast_action_map[(int)*p];
         if (action == URI_PARSE_CONTINUE) {
@@ -247,7 +249,9 @@ int ParseHostAndPortFromURL(const char* url, std::string* host_out,
         if (*p == ':') {
             if (p[1] == '/' && p[2] == '/' && need_schema) {
                 need_schema = false;
-                schema.set(start, p - start);
+                if (schema_out) {
+                    schema_out->assign(start, p - start);
+                }
                 p += 2;
                 start = p + 1;
             }
@@ -266,15 +270,12 @@ int ParseHostAndPortFromURL(const char* url, std::string* host_out,
     }
     int port = -1;
     const char* host_end = SplitHostAndPort(start, p, &port);
-    if (port < 0) {
-        if (schema.empty() || schema == "http") {
-            port = 80;
-        } else if (schema == "https") {
-            port = 443;
-        }
+    if (host_out) {
+        host_out->assign(start, host_end - start);
     }
-    host_out->assign(start, host_end - start);
-    *port_out = port;
+    if (port_out) {
+        *port_out = port;
+    }
     return 0;
 }
 
@@ -409,22 +410,9 @@ void URI::SetH2Path(const char* h2_path) {
     }
 }
 
-void QuerySplitter::split() {
-    butil::StringPiece query_pair(_sp.field(), _sp.length());
-    const size_t pos = query_pair.find('=');
-    if (pos == butil::StringPiece::npos) {
-        _key = query_pair;
-        _value.clear();
-    } else {
-        _key= query_pair.substr(0, pos);
-        _value = query_pair.substr(pos + 1);
-    }
-    _is_split = true;
-}
-
-QueryRemover::QueryRemover(const std::string& str)
-    : _qs(str.data(), str.data() + str.size())
-    , _query(str) 
+QueryRemover::QueryRemover(const std::string* str)
+    : _query(str)
+    , _qs(str->data(), str->data() + str->size())
     , _iterated_len(0)
     , _removed_current_key_value(false)
     , _ever_removed(false) {
@@ -463,9 +451,9 @@ void QueryRemover::remove_current_key_and_value() {
     _removed_current_key_value = true;
     if (!_ever_removed) {
         _ever_removed = true;
-        size_t offset = key().data() - _query.data();
-        size_t len = offset - ((offset > 0 && _query[offset - 1] == '&')? 1: 0);
-        _modified_query.append(_query.data(), len);
+        size_t offset = key().data() - _query->data();
+        size_t len = offset - ((offset > 0 && (*_query)[offset - 1] == '&')? 1: 0);
+        _modified_query.append(_query->data(), len);
         _iterated_len += len;
     }
     return;
@@ -473,24 +461,24 @@ void QueryRemover::remove_current_key_and_value() {
 
 std::string QueryRemover::modified_query() {
     if (!_ever_removed) {
-        return _query;
+        return *_query;
     }
-    size_t offset = key().data() - _query.data();
+    size_t offset = key().data() - _query->data();
     // find out where the remaining string starts
     if (_removed_current_key_value) {
         size_t size = key_and_value().length();
-        while (offset + size < _query.size() && _query[offset + size] == '&') {
+        while (offset + size < _query->size() && (*_query)[offset + size] == '&') {
             // ingore unnecessary '&'
             size += 1;
         }
         offset += size;
     }
     _modified_query.resize(_iterated_len);
-    if (offset < _query.size()) {
+    if (offset < _query->size()) {
         if (!_modified_query.empty()) {
             _modified_query.push_back('&');
         }
-        _modified_query.append(_query, offset, std::string::npos);
+        _modified_query.append(*_query, offset, std::string::npos);
     }
     return _modified_query;
 }

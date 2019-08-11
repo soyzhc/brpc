@@ -1,6 +1,19 @@
-// Copyright (c) 2014 Baidu, Inc.
-// Author Zhangyi Chen (chenzhangyi01@baidu.com)
-// Date 2014/10/16 17:55:39
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
 
 #include <limits>                           //std::numeric_limits
 
@@ -49,7 +62,7 @@ TEST_F(ReducerTest, adder) {
     ASSERT_EQ(-5, reducer3.get_value());
 }
 
-const size_t OPS_PER_THREAD = 5000000;
+const size_t OPS_PER_THREAD = 500000;
 
 static void *thread_counter(void *arg) {
     bvar::Adder<uint64_t> *reducer = (bvar::Adder<uint64_t> *)arg;
@@ -276,7 +289,7 @@ static void* string_appender(void* arg) {
     int count = 0;
     std::string id = butil::string_printf("%lld", (long long)pthread_self());
     std::string tmp = "a";
-    for (count = 0; !g_stop; ++count) {
+    for (count = 0; !count || !g_stop; ++count) {
         *cater << id << ":";
         for (char c = 'a'; c <= 'z'; ++c) {
             tmp[0] = c;
@@ -297,7 +310,7 @@ TEST_F(ReducerTest, non_primitive_mt) {
     for (size_t i = 0; i < arraysize(th); ++i) {
         pthread_create(&th[i], NULL, string_appender, &cater);
     }
-    usleep(10000);
+    usleep(50000);
     g_stop = true;
     butil::hash_map<pthread_t, int> appended_count;
     for (size_t i = 0; i < arraysize(th); ++i) {
@@ -310,7 +323,7 @@ TEST_F(ReducerTest, non_primitive_mt) {
     std::string res = cater.get_value();
     for (butil::StringSplitter sp(res.c_str(), '.'); sp; ++sp) {
         char* endptr = NULL;
-        ++got_count[strtoll(sp.field(), &endptr, 10)];
+        ++got_count[(pthread_t)strtoll(sp.field(), &endptr, 10)];
         ASSERT_EQ(27LL, sp.field() + sp.length() - endptr)
             << butil::StringPiece(sp.field(), sp.length());
         ASSERT_EQ(0, memcmp(":abcdefghijklmnopqrstuvwxyz", endptr, 27));

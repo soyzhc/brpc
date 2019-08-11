@@ -1,6 +1,8 @@
+[English version](../en/streaming_rpc.md)
+
 # 概述
 
-在一些应用场景中， client或server需要像对面发送大量数据，这些数据非常大或者持续地在产生以至于无法放在一个RPC的附件中。比如一个分布式系统的不同节点间传递replica或snapshot。client/server之间虽然可以通过多次RPC把数据切分后传输过去，但存在如下问题：
+在一些应用场景中， client或server需要向对面发送大量数据，这些数据非常大或者持续地在产生以至于无法放在一个RPC的附件中。比如一个分布式系统的不同节点间传递replica或snapshot。client/server之间虽然可以通过多次RPC把数据切分后传输过去，但存在如下问题：
 
 - 如果这些RPC是并行的，无法保证接收端有序地收到数据，拼接数据的逻辑相当复杂。
 - 如果这些RPC是串行的，每次传递都得等待一次网络RTT+处理数据的延时，特别是后者的延时可能是难以预估的。
@@ -21,7 +23,7 @@ Streaming RPC保证：
 
 # 建立Stream
 
-目前Stream都由Client端建立。Client先在本地创建一个Stream，再通过一次RPC（必须使用标准协议）与指定的Service建立一个Stream，如果Service在收到请求之后选择接受这个Stream， 那在response返回Client后Stream就会建立成功。过程中的任何错误都把RPC标记为失败，同时也意味着Stream创建失败。用linux下建立连接的过程打比方，Client先创建[socket](http://linux.die.net/man/7/socket)（创建Stream），再调用[connect](http://linux.die.net/man/2/connect)尝试与远端建立连接（通过RPC建立Stream），远端[accept](http://linux.die.net/man/2/accept)后连接就建立了（service接受后创建成功）。
+目前Stream都由Client端建立。Client先在本地创建一个Stream，再通过一次RPC（必须使用baidu_std协议）与指定的Service建立一个Stream，如果Service在收到请求之后选择接受这个Stream， 那在response返回Client后Stream就会建立成功。过程中的任何错误都把RPC标记为失败，同时也意味着Stream创建失败。用linux下建立连接的过程打比方，Client先创建[socket](http://linux.die.net/man/7/socket)（创建Stream），再调用[connect](http://linux.die.net/man/2/connect)尝试与远端建立连接（通过RPC建立Stream），远端[accept](http://linux.die.net/man/2/accept)后连接就建立了（service接受后创建成功）。
 
 > 如果Client尝试向不支持Streaming RPC的老Server建立Stream，将总是失败。
 

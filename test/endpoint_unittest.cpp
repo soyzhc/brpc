@@ -1,7 +1,19 @@
-// Copyright (c) 2014 Baidu, Inc.
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
 //
-// Author: Ge,Jun (gejun@baidu.com)
-// Date: 2010-12-04 11:59
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
 
 #include <gtest/gtest.h>
 #include "butil/errno.h"
@@ -81,10 +93,12 @@ TEST(EndPointTest, endpoint) {
     ASSERT_EQ(0, hostname2endpoint("localhost:65535", &p5)) << berror();
     ASSERT_EQ(0, hostname2endpoint("localhost:0", &p5));
 
+#ifdef BAIDU_INTERNAL
     butil::EndPoint p6;
     ASSERT_EQ(0, hostname2endpoint("tc-cm-et21.tc: 289 ", &p6));
     ASSERT_STREQ("10.23.249.73", butil::ip2str(p6.ip).c_str());
     ASSERT_EQ(289, p6.port);
+#endif
 }
 
 TEST(EndPointTest, hash_table) {

@@ -1,6 +1,19 @@
-// Copyright (c) 2014 Baidu, Inc.
-// File test_uri.cpp
-// Date 2014/10/27 14:19:35
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
 
 #include <gtest/gtest.h>
 
@@ -20,9 +33,11 @@ TEST(URITest, everything) {
     ASSERT_EQ(*uri.GetQuery("wd"), "uri");
     ASSERT_FALSE(uri.GetQuery("nonkey"));
 
+    std::string schema;
     std::string host_out;
     int port_out = -1;
-    brpc::ParseHostAndPortFromURL(uri_str.c_str(), &host_out, &port_out);
+    brpc::ParseURL(uri_str.c_str(), &schema, &host_out, &port_out);
+    ASSERT_EQ("foobar", schema);
     ASSERT_EQ("www.baidu.com", host_out);
     ASSERT_EQ(80, port_out);
 }
@@ -36,7 +51,7 @@ TEST(URITest, only_host) {
     ASSERT_EQ("", uri.path());
     ASSERT_EQ("", uri.user_info());
     ASSERT_EQ("", uri.fragment());
-    ASSERT_EQ(2, uri.QueryCount());
+    ASSERT_EQ(2u, uri.QueryCount());
     ASSERT_TRUE(uri.GetQuery("wd"));
     ASSERT_EQ(*uri.GetQuery("wd"), "uri2");
     ASSERT_TRUE(uri.GetQuery("nonkey"));
@@ -329,7 +344,7 @@ TEST(URITest, copy_and_assign) {
 
 TEST(URITest, query_remover_sanity) {
     std::string query = "key1=value1&key2=value2&key3=value3";
-    brpc::QueryRemover qr(query);
+    brpc::QueryRemover qr(&query);
     ASSERT_TRUE(qr);
     ASSERT_EQ(qr.key(), "key1");
     ASSERT_EQ(qr.value(), "value1");
@@ -345,7 +360,7 @@ TEST(URITest, query_remover_sanity) {
 
 TEST(URITest, query_remover_remove_current_key_and_value) {
     std::string query = "key1=value1&key2=value2&key3=value3";
-    brpc::QueryRemover qr(query);
+    brpc::QueryRemover qr(&query);
     ASSERT_TRUE(qr);
     qr.remove_current_key_and_value();
     ASSERT_EQ(qr.modified_query(), "key2=value2&key3=value3");
@@ -366,7 +381,7 @@ TEST(URITest, query_remover_remove_current_key_and_value) {
 TEST(URITest, query_remover_random_remove) {
     std::string query = "key1=value1&key2=value2&key3=value3&key4=value4"
                         "&key5=value5&key6=value6";
-    brpc::QueryRemover qr(query);
+    brpc::QueryRemover qr(&query);
     ASSERT_TRUE(qr);
     ++qr;
     ++qr;
@@ -381,7 +396,7 @@ TEST(URITest, query_remover_random_remove) {
 TEST(URITest, query_remover_onekey_remove) {
     std::string query = "key1=value1&key2=value2&key3=value3&key4=value4"
                         "&key5=value5&key6=value6";
-    brpc::QueryRemover qr(query);
+    brpc::QueryRemover qr(&query);
     ASSERT_TRUE(qr);
     ++qr;
     ++qr;
@@ -399,7 +414,7 @@ TEST(URITest, query_remover_onekey_remove) {
 
 TEST(URITest, query_remover_consecutive_ampersand) {
     std::string query = "key1=value1&&&key2=value2&key3=value3&&";
-    brpc::QueryRemover qr(query);
+    brpc::QueryRemover qr(&query);
     ASSERT_TRUE(qr);
     qr.remove_current_key_and_value();
     ASSERT_EQ(qr.modified_query(), "key2=value2&key3=value3&&");
@@ -415,7 +430,7 @@ TEST(URITest, query_remover_consecutive_ampersand) {
 
 TEST(URITest, query_remover_only_equality) {
     std::string query ="key1=&&key2&=&key3=value3";
-    brpc::QueryRemover qr(query);
+    brpc::QueryRemover qr(&query);
     ASSERT_TRUE(qr);
     ASSERT_EQ(qr.key(), "key1");
     ASSERT_EQ(qr.value(), "");
@@ -436,7 +451,7 @@ TEST(URITest, query_remover_only_equality) {
 
 TEST(URITest, query_remover_only_one_key) {
     std::string query = "key1";
-    brpc::QueryRemover qr(query);
+    brpc::QueryRemover qr(&query);
     ASSERT_TRUE(qr);
     ASSERT_EQ(qr.key(), "key1");
     ASSERT_EQ(qr.value(), "");
@@ -448,7 +463,7 @@ TEST(URITest, query_remover_only_one_key) {
 
 TEST(URITest, query_remover_no_modify) {
     std::string query = "key1=value1&key2=value2&key3=value3";
-    brpc::QueryRemover qr(query);
+    brpc::QueryRemover qr(&query);
     ASSERT_TRUE(qr);
     ASSERT_EQ(qr.key(), "key1");
     ASSERT_EQ(qr.value(), "value1");
@@ -456,15 +471,12 @@ TEST(URITest, query_remover_no_modify) {
     ++qr;
     ++qr;
     ASSERT_FALSE(qr);
-    ASSERT_EQ(qr.modified_query(), "key1=value1&key2=value2&key3=value3");
-    // if the query string is not modified, the returned value 
-    // should be a reference to the original string
-    ASSERT_EQ(qr.modified_query().data(), query.data());
+    ASSERT_EQ(qr.modified_query(), query);
 }
 
 TEST(URITest, query_remover_key_value_not_changed_after_modified_query) {
     std::string query = "key1=value1&key2=value2&key3=value3";
-    brpc::QueryRemover qr(query);
+    brpc::QueryRemover qr(&query);
     ASSERT_TRUE(qr);
     ++qr;
     ASSERT_EQ(qr.key(), "key2");
@@ -476,54 +488,3 @@ TEST(URITest, query_remover_key_value_not_changed_after_modified_query) {
     ASSERT_EQ(qr.value(), "value2");
 }
 
-TEST(URITest, query_splitter_sanity) {
-    std::string query = "key1=value1&key2=value2&key3=value3";
-    {
-        brpc::QuerySplitter qs(query);
-        ASSERT_TRUE(qs);
-        ASSERT_EQ(qs.key(), "key1");
-        ASSERT_EQ(qs.value(), "value1");
-        ++qs;
-        ASSERT_TRUE(qs);
-        ASSERT_EQ(qs.key(), "key2");
-        ASSERT_EQ(qs.value(), "value2");
-        ++qs;
-        ASSERT_TRUE(qs);
-        ASSERT_EQ(qs.key(), "key3");
-        ASSERT_EQ(qs.value(), "value3");
-        ++qs;
-        ASSERT_FALSE(qs);
-    }
-    {
-        brpc::QuerySplitter qs(query.data(), query.data() + query.size());
-        ASSERT_TRUE(qs);
-        ASSERT_EQ(qs.key(), "key1");
-        ASSERT_EQ(qs.value(), "value1");
-        ++qs;
-        ASSERT_TRUE(qs);
-        ASSERT_EQ(qs.key(), "key2");
-        ASSERT_EQ(qs.value(), "value2");
-        ++qs;
-        ASSERT_TRUE(qs);
-        ASSERT_EQ(qs.key(), "key3");
-        ASSERT_EQ(qs.value(), "value3");
-        ++qs;
-        ASSERT_FALSE(qs);
-    }
-    {
-        brpc::QuerySplitter qs(query.c_str());
-        ASSERT_TRUE(qs);
-        ASSERT_EQ(qs.key(), "key1");
-        ASSERT_EQ(qs.value(), "value1");
-        ++qs;
-        ASSERT_TRUE(qs);
-        ASSERT_EQ(qs.key(), "key2");
-        ASSERT_EQ(qs.value(), "value2");
-        ++qs;
-        ASSERT_TRUE(qs);
-        ASSERT_EQ(qs.key(), "key3");
-        ASSERT_EQ(qs.value(), "value3");
-        ++qs;
-        ASSERT_FALSE(qs);
-    }
-}

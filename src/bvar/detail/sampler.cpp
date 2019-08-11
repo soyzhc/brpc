@@ -1,16 +1,19 @@
-// Copyright (c) 2015 Baidu, Inc.
-// 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-// 
-//     http://www.apache.org/licenses/LICENSE-2.0
-// 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
 
 // Author: Ge,Jun (gejun@baidu.com)
 // Date: Tue Jul 28 18:14:40 CST 2015
@@ -25,8 +28,6 @@
 namespace bvar {
 namespace detail {
 
-// set to true in UT. Not using gflags since users hardly need to change it.
-bool FLAGS_show_sampler_usage = true;
 const int WARN_NOSLEEP_THRESHOLD = 2;
 
 // Combine two circular linked list into one.
@@ -94,11 +95,11 @@ private:
 void SamplerCollector::run() {
     butil::LinkNode<Sampler> root;
     int consecutive_nosleep = 0;
+#ifndef UNIT_TEST
     PassiveStatus<double> cumulated_time(get_cumulated_time, this);
-    bvar::PerSecond<bvar::PassiveStatus<double> > usage(&cumulated_time, 10);
-    if (FLAGS_show_sampler_usage) {
-        usage.expose("bvar_sampler_collector_usage");
-    }
+    bvar::PerSecond<bvar::PassiveStatus<double> > usage(
+            "bvar_sampler_collector_usage", &cumulated_time, 10);
+#endif
     while (!_stop) {
         int64_t abstime = butil::gettimeofday_us();
         Sampler* s = this->reset();
